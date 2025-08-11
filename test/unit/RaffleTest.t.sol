@@ -36,6 +36,7 @@ contract RaffleTest is Test {
         subscriptionId = config.subscriptionId;
         vm.deal(PLAYER, STARTING_PLAYER_BALANCE);
     }
+
     function testRaffleInitializesInOpenState() public view {
         assert(raffle.getRaffleState() == Raffle.RaffleState.OPEN);
     }
@@ -45,6 +46,7 @@ contract RaffleTest is Test {
         vm.expectRevert(Raffle.NotEnoughEth.selector);
         raffle.enterRaffle();
     }
+
     function testRaffleRecordsPlayersWhenTheyEnter() public {
         //Arrange Act Assert
         vm.prank(PLAYER);
@@ -52,12 +54,14 @@ contract RaffleTest is Test {
         address playerRecorded = raffle.getPlayer(0);
         assert(playerRecorded == PLAYER);
     }
+
     function testEnteringRaffleEmitsEvent() public {
         vm.prank(PLAYER);
         vm.expectEmit(true, false, false, false, address(raffle));
         emit RaffleEntered(PLAYER);
         raffle.enterRaffle{value: entranceFee}();
     }
+
     function testDontAllowPlayersToEnterWhileRaffleIsCalculating() public {
         vm.prank(PLAYER);
         raffle.enterRaffle{value: entranceFee}();
@@ -69,10 +73,11 @@ contract RaffleTest is Test {
         vm.prank(PLAYER);
         raffle.enterRaffle{value: entranceFee}();
     }
+
     function testCheckUpKeepReturnsFalseIfNoBalance() public {
         vm.warp(block.timestamp + interval + 1);
         vm.roll(block.number + 1);
-        (bool upkeepNeeded, ) = raffle.checkUpkeep("");
+        (bool upkeepNeeded,) = raffle.checkUpkeep("");
         assert(!upkeepNeeded);
     }
 
@@ -82,7 +87,7 @@ contract RaffleTest is Test {
         vm.warp(block.timestamp + interval + 1);
         vm.roll(block.number + 1);
         raffle.performUpkeep("");
-        (bool upkeepNeeded, ) = raffle.checkUpkeep("");
+        (bool upkeepNeeded,) = raffle.checkUpkeep("");
         assert(!upkeepNeeded);
     }
 
@@ -105,16 +110,12 @@ contract RaffleTest is Test {
         currentBalance = currentBalance + entranceFee;
         numPlayers = 1;
         vm.expectRevert(
-            abi.encodeWithSelector(
-                Raffle.Raffle_UpkeepNotNeeded.selector,
-                currentBalance,
-                numPlayers,
-                rstate
-            )
+            abi.encodeWithSelector(Raffle.Raffle_UpkeepNotNeeded.selector, currentBalance, numPlayers, rstate)
         );
 
         raffle.performUpkeep("");
     }
+
     modifier raffleEnteredAndTimePassed() {
         vm.prank(PLAYER);
         raffle.enterRaffle{value: entranceFee}();
@@ -122,6 +123,7 @@ contract RaffleTest is Test {
         vm.roll(block.number + 1);
         _;
     }
+
     function testPerformUpkeepUpdatesRaffleStateAndEmitsRequestId() public {
         // Arrange: player enters the raffle
         vm.prank(PLAYER);

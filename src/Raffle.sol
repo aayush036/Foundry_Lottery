@@ -24,29 +24,29 @@
 
 pragma solidity ^0.8.30;
 
-import {VRFConsumerBaseV2Plus} from "../lib/chainlink-brownie-contracts/contracts/src/v0.8/vrf/dev/VRFConsumerBaseV2Plus.sol";
-import {VRFV2PlusClient} from "../lib/chainlink-brownie-contracts/contracts/src/v0.8/vrf/dev/libraries/VRFV2PlusClient.sol";
+import {VRFConsumerBaseV2Plus} from
+    "../lib/chainlink-brownie-contracts/contracts/src/v0.8/vrf/dev/VRFConsumerBaseV2Plus.sol";
+import {VRFV2PlusClient} from
+    "../lib/chainlink-brownie-contracts/contracts/src/v0.8/vrf/dev/libraries/VRFV2PlusClient.sol";
 /**
  * @title Raffle
  * @dev implements Chailink VRFv2.5
  * @author Aayush Patel
  * @notice This contract is for creating a sample raffle
  */
+
 contract Raffle is VRFConsumerBaseV2Plus {
     //errors sections
     error NotEnoughEth();
     error Raffle_TransferFailed();
     error Raffle_RaffleNotOpen();
-    error Raffle_UpkeepNotNeeded(
-        uint256 balance,
-        uint256 playersLength,
-        uint256 RaffleState
-    );
+    error Raffle_UpkeepNotNeeded(uint256 balance, uint256 playersLength, uint256 RaffleState);
 
     //enum section: enum are used to create custome types
     enum RaffleState {
         OPEN, //0
         CALCULATING //1
+
     }
 
     //state variable section
@@ -66,6 +66,7 @@ contract Raffle is VRFConsumerBaseV2Plus {
     event RaffleEntered(address indexed player);
     event WinnerPicked(address indexed winner);
     event RequestedRaffleWinner(uint256 requestId);
+
     constructor(
         uint256 entranceFee,
         uint256 interval,
@@ -98,18 +99,16 @@ contract Raffle is VRFConsumerBaseV2Plus {
     }
     // when should winner be picked?
     /**
-     
-     *@dev this is the function thay the chianlink nodes will call to see if the the lottery isready to have winner picked.
-        *the following should be true to make checkUpkeep true;
-        1. the time interval that has passed between raffle urn 
-        2. the lottery is open 
-        3. The contract has eth 
-        4. Implicity, your subscription has Link
-     @return upkeepNeeded true if it is time to restart the lottery
-      */
-    function checkUpkeep(
-        bytes memory
-    ) public view returns (bool upkeepNeeded, bytes memory) {
+     * @dev this is the function thay the chianlink nodes will call to see if the the lottery isready to have winner picked.
+     * the following should be true to make checkUpkeep true;
+     *     1. the time interval that has passed between raffle urn
+     *     2. the lottery is open
+     *     3. The contract has eth
+     *     4. Implicity, your subscription has Link
+     *  @return upkeepNeeded true if it is time to restart the lottery
+     */
+
+    function checkUpkeep(bytes memory) public view returns (bool upkeepNeeded, bytes memory) {
         bool timeHasPassed = block.timestamp - s_lastTimeStamp >= i_interval;
         bool isOpen = s_raffleState == RaffleState.OPEN;
         bool hasBalance = address(this).balance > 0;
@@ -117,27 +116,21 @@ contract Raffle is VRFConsumerBaseV2Plus {
         upkeepNeeded = timeHasPassed && isOpen && hasBalance && hasPlayers;
         return (upkeepNeeded, "");
     }
+
     function performUpkeep(bytes calldata) external {
-        (bool upkeepNeeded, ) = checkUpkeep("");
+        (bool upkeepNeeded,) = checkUpkeep("");
         if (!upkeepNeeded) {
-            revert Raffle_UpkeepNotNeeded(
-                address(this).balance,
-                s_players.length,
-                uint256(s_raffleState)
-            );
+            revert Raffle_UpkeepNotNeeded(address(this).balance, s_players.length, uint256(s_raffleState));
         }
         s_raffleState = RaffleState.CALCULATING;
-        VRFV2PlusClient.RandomWordsRequest memory request = VRFV2PlusClient
-            .RandomWordsRequest({
-                keyHash: i_keyHash,
-                subId: i_subscriptionId,
-                requestConfirmations: REQUEST_CONFIRMATIONS,
-                callbackGasLimit: i_callbackGasLimit,
-                numWords: NUM_WORDS,
-                extraArgs: VRFV2PlusClient._argsToBytes(
-                    VRFV2PlusClient.ExtraArgsV1({nativePayment: false})
-                )
-            });
+        VRFV2PlusClient.RandomWordsRequest memory request = VRFV2PlusClient.RandomWordsRequest({
+            keyHash: i_keyHash,
+            subId: i_subscriptionId,
+            requestConfirmations: REQUEST_CONFIRMATIONS,
+            callbackGasLimit: i_callbackGasLimit,
+            numWords: NUM_WORDS,
+            extraArgs: VRFV2PlusClient._argsToBytes(VRFV2PlusClient.ExtraArgsV1({nativePayment: false}))
+        });
         uint256 requestId = s_vrfCoordinator.requestRandomWords(request);
         emit RequestedRaffleWinner(requestId);
 
@@ -151,10 +144,8 @@ contract Raffle is VRFConsumerBaseV2Plus {
         // get oour random number , getting a random number is difficult in deterministic system like blockchain
     }
     // CEI: Checks this is any condition checking, Effects what is there is your contract, what variable will be in effect, Interactions any external iteraction or call or return  Pattern
-    function fulfillRandomWords(
-        uint256,
-        uint256[] calldata randomwords
-    ) internal virtual override {
+
+    function fulfillRandomWords(uint256, uint256[] calldata randomwords) internal virtual override {
         uint256 indexOfWinner = randomwords[0] % s_players.length;
         address payable recentWinner = s_players[indexOfWinner];
         s_recentWinner = recentWinner;
@@ -162,17 +153,20 @@ contract Raffle is VRFConsumerBaseV2Plus {
         s_players = new address payable[](0);
         s_lastTimeStamp = block.timestamp;
         emit WinnerPicked(s_recentWinner);
-        (bool success, ) = recentWinner.call{value: address(this).balance}("");
+        (bool success,) = recentWinner.call{value: address(this).balance}("");
         if (!success) {
             revert Raffle_TransferFailed();
         }
     }
+
     function getEntranceFee() public view returns (uint256) {
         return i_entranceFee;
     }
+
     function getRaffleState() external view returns (RaffleState) {
         return s_raffleState;
     }
+
     function getPlayer(uint256 indexOfPlayers) external view returns (address) {
         return s_players[indexOfPlayers];
     }

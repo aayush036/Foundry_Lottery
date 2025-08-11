@@ -10,21 +10,18 @@ contract DeployRaffle is Script {
     function run() public {
         deployContract();
     }
+
     function deployContract() public returns (Raffle, HelperConfig) {
         HelperConfig helperConfig = new HelperConfig();
         HelperConfig.NetworkConfig memory config = helperConfig.getConfig();
         if (config.subscriptionId == 0) {
             //create new subcription
             CreateSubscription createSubscription = new CreateSubscription();
-            (config.subscriptionId, config.vrfCoordinator) = createSubscription
-                .createSubscription(config.vrfCoordinator);
+            (config.subscriptionId, config.vrfCoordinator) =
+                createSubscription.createSubscription(config.vrfCoordinator);
 
             FundSubscription fundSubscription = new FundSubscription();
-            fundSubscription.fundSubscription(
-                config.vrfCoordinator,
-                config.subscriptionId,
-                config.link
-            );
+            fundSubscription.fundSubscription(config.vrfCoordinator, config.subscriptionId, config.link);
         }
         vm.startBroadcast();
         Raffle raffle = new Raffle(
@@ -37,11 +34,7 @@ contract DeployRaffle is Script {
         );
         vm.stopBroadcast();
         AddConsumer addconsumer = new AddConsumer();
-        addconsumer.addConsumer(
-            address(raffle),
-            config.vrfCoordinator,
-            config.subscriptionId
-        );
+        addconsumer.addConsumer(address(raffle), config.vrfCoordinator, config.subscriptionId);
         return (raffle, helperConfig);
     }
 }
